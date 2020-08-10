@@ -50,7 +50,9 @@ def model_score_fitness(params, score_target=1.0):
     n_samples = min(max(n_samples, SAMPLES_RANGE[0]), SAMPLES_RANGE[1])
     corr = min(max(corr, 0.0), 1.0)
     alpha_n = int(alpha_n)
+    alpha_n = min(max(alpha_n, ALPHA[0]), ALPHA[1])
     outliers = int(outliers)
+    outliers = min(max(outliers, OUTLIERS_RANGE[0]), OUTLIERS_RANGE[1])
 
     params_ = {
         'n_samples': n_samples,
@@ -63,7 +65,9 @@ def model_score_fitness(params, score_target=1.0):
         'outliers': outliers
     }
     samples, labels = generated_dataset(params_)
-    train_score, test_score = model_score_func(dataset=(samples, labels))
+
+    # cv_samples, cv_labels, valid_samples, valid_labels = train_test_split(samples, labels, test_size=0.2)
+    train_score, _ = model_score_func(dataset=(samples, labels))
 
     fitness = np.abs(score_target - train_score)
     return fitness
