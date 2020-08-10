@@ -16,6 +16,33 @@ ALPHA = list(range(1, 5))
 OUTLIERS_RANGE = [50, 1000]
 
 
+def mdc_gen_params():
+    params = ['n_samples', 'k', 'possible_distributions',
+              'corr', 'compactness_factor', 'alpha_n',
+              'outliers']
+
+    return params
+
+
+def individ_to_params(individ):
+    extracted_params = {}
+    for gen, param_name in zip(individ, mdc_gen_params()):
+        if param_name is 'possible_distributions':
+            extracted_params[param_name] = [gen]
+        else:
+            extracted_params[param_name] = gen
+
+    return extracted_params
+
+
+def fix_out_of_ranges(params):
+    params['n_samples'] = min(max(params['n_samples'], SAMPLES_RANGE[0]), SAMPLES_RANGE[1])
+    params['k'] = min(max(params['k'], K_RANGE[0]), K_RANGE[1])
+    params['corr'] = min(max(params['corr'], 0.0), 1.0)
+    params['alpha_n'] = int(min(max(params['alpha_n'], ALPHA[0]), ALPHA[1]))
+    params['outliers'] = int(min(max(params['outliers'], OUTLIERS_RANGE[0]), OUTLIERS_RANGE[1]))
+
+
 def register_individ_params(toolbox):
     toolbox.register('n_samples', random.randint,
                      SAMPLES_RANGE[0], SAMPLES_RANGE[1])
@@ -44,29 +71,12 @@ toolbox.register("population", tools.initRepeat, list, toolbox.mdc_individ)
 
 def model_score_fitness(params, score_target=1.0):
     model_score_func = log_reg_score
-    n_samples, k, distribution, corr, compact, alpha_n, outliers = params
 
-    k = min(max(k, K_RANGE[0]), K_RANGE[1])
-    n_samples = min(max(n_samples, SAMPLES_RANGE[0]), SAMPLES_RANGE[1])
-    corr = min(max(corr, 0.0), 1.0)
-    alpha_n = int(alpha_n)
-    alpha_n = min(max(alpha_n, ALPHA[0]), ALPHA[1])
-    outliers = int(outliers)
-    outliers = min(max(outliers, OUTLIERS_RANGE[0]), OUTLIERS_RANGE[1])
-
-    params_ = {
-        'n_samples': n_samples,
-        'n_feat': 2,
-        'k': k,
-        'possible_distributions': [distribution],
-        'corr': corr,
-        'compactness_factor': compact,
-        'alpha_n': alpha_n,
-        'outliers': outliers
-    }
+    params_ = individ_to_params(params)
+    fix_out_of_ranges(params_)
+    params_['n_feat'] = 2
     samples, labels = generated_dataset(params_)
 
-    # cv_samples, cv_labels, valid_samples, valid_labels = train_test_split(samples, labels, test_size=0.2)
     train_score, _ = model_score_func(dataset=(samples, labels))
 
     fitness = np.abs(score_target - train_score)
@@ -86,7 +96,7 @@ if __name__ == '__main__':
 
     population = toolbox.population(n=20)
 
-    NGEN = 30
+    NGEN = 5
     for gen in range(NGEN):
         print(f'gen # {gen}')
         offspring = algorithms.varAnd(population, toolbox, cxpb=0.5, mutpb=0.1)
@@ -100,17 +110,8 @@ if __name__ == '__main__':
 
     best_params = top10[0]
 
-    params_ = {
-        'n_samples': best_params[0],
-        'n_feat': 2,
-        'k': best_params[1],
-        'possible_distributions': [best_params[2]],
-        'corr': best_params[3],
-        'compactness_factor': best_params[4],
-        'alpha_n': best_params[5],
-        'outliers': best_params[6]
-    }
-
+    params_ = individ_to_params(best_params)
+    params_['n_feat'] = 2
     print(model_score_fitness(params=best_params))
     samples, labels = generated_dataset(params=params_)
     show_clusters(samples=samples, labels=labels)
