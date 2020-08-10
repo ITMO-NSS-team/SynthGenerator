@@ -12,6 +12,8 @@ from mdc_gen_example import all_distributions, show_clusters
 
 SAMPLES_RANGE = [1000, 2000]
 K_RANGE = [1, 10]
+ALPHA = list(range(1, 5))
+OUTLIERS_RANGE = [50, 1000]
 
 
 def register_individ_params(toolbox):
@@ -20,8 +22,17 @@ def register_individ_params(toolbox):
     toolbox.register('k', random.randint,
                      K_RANGE[0], K_RANGE[1])
     toolbox.register('possible_distributions', random.choice, all_distributions())
+    toolbox.register('corr', random.random)
+    toolbox.register('compactness_factor', random.random)
+    toolbox.register('alpha_n', random.choice, ALPHA)
+    toolbox.register('outliers', random.randint,
+                     OUTLIERS_RANGE[0], OUTLIERS_RANGE[1])
+
     toolbox.register('mdc_individ', tools.initCycle, creator.Individual,
-                     (toolbox.n_samples, toolbox.k, toolbox.possible_distributions), n=1)
+                     (toolbox.n_samples, toolbox.k,
+                      toolbox.possible_distributions,
+                      toolbox.corr, toolbox.compactness_factor,
+                      toolbox.alpha_n, toolbox.outliers), n=1)
 
 
 creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
@@ -33,15 +44,23 @@ toolbox.register("population", tools.initRepeat, list, toolbox.mdc_individ)
 
 def model_score_fitness(params, score_target=1.0):
     model_score_func = log_reg_score
-    n_samples, k, distribution = params
+    n_samples, k, distribution, corr, compact, alpha_n, outliers = params
 
     k = min(max(k, K_RANGE[0]), K_RANGE[1])
     n_samples = min(max(n_samples, SAMPLES_RANGE[0]), SAMPLES_RANGE[1])
+    corr = min(max(corr, 0.0), 1.0)
+    alpha_n = int(alpha_n)
+    outliers = int(outliers)
+
     params_ = {
         'n_samples': n_samples,
         'n_feat': 2,
         'k': k,
-        'possible_distributions': [distribution]
+        'possible_distributions': [distribution],
+        'corr': corr,
+        'compactness_factor': compact,
+        'alpha_n': alpha_n,
+        'outliers': outliers
     }
     samples, labels = generated_dataset(params_)
     train_score, test_score = model_score_func(dataset=(samples, labels))
@@ -81,7 +100,11 @@ if __name__ == '__main__':
         'n_samples': best_params[0],
         'n_feat': 2,
         'k': best_params[1],
-        'possible_distributions': [best_params[2]]
+        'possible_distributions': [best_params[2]],
+        'corr': best_params[3],
+        'compactness_factor': best_params[4],
+        'alpha_n': best_params[5],
+        'outliers': best_params[6]
     }
 
     print(model_score_fitness(params=best_params))
