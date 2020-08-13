@@ -1,12 +1,13 @@
 import random
 
+import matplotlib.pyplot as plt
 import numpy as np
 from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
 
-from fit_models import log_reg_score
+from fit_models import log_reg_score, dec_tree_score
 from generators.mdc import generated_dataset
 from mdc_gen_example import all_distributions, show_clusters
 
@@ -62,8 +63,8 @@ def register_individ_params(toolbox):
                       toolbox.alpha_n, toolbox.outliers), n=1)
 
 
-creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
-creator.create("Individual", list, fitness=creator.FitnessMax)
+creator.create("FitnessMin", base.Fitness, weights=(-1.0, 1.0))
+creator.create("Individual", list, fitness=creator.FitnessMin)
 toolbox = base.Toolbox()
 register_individ_params(toolbox)
 toolbox.register("population", tools.initRepeat, list, toolbox.mdc_individ)
@@ -83,31 +84,82 @@ def model_score_fitness(params, score_target=1.0):
     return fitness
 
 
+def two_model_score_fitness(params,
+                            score_target_first=1.0, score_target_second=1.0):
+    first_model_score = log_reg_score
+    second_model_score = dec_tree_score
+
+    params_ = individ_to_params(params)
+    fix_out_of_ranges(params_)
+    params_['n_feat'] = 2
+    samples, labels = generated_dataset(params_)
+
+    first_score, _ = first_model_score(dataset=(samples, labels))
+    second_score, _ = second_model_score(dataset=(samples, labels))
+
+    print(f'{first_score}, {second_score}')
+    # fitness_first = np.abs(score_target_first - first_score)
+    # fitness_second = np.abs(score_target_second - second_score)
+
+    return first_score, second_score
+
+
 def eval_fitness(individual):
     score = model_score_fitness(individual)
     return score,
 
 
-if __name__ == '__main__':
-    toolbox.register("evaluate", eval_fitness)
+def eval_multi_fitness(individual):
+    score = two_model_score_fitness(individual)
+
+    return score
+
+
+def run_evolution(generations=10):
+    toolbox.register("evaluate", eval_multi_fitness)
     toolbox.register("mate", tools.cxTwoPoint)
     toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     population = toolbox.population(n=20)
 
-    NGEN = 5
-    for gen in range(NGEN):
+    fit_history_first = []
+    fit_history_second = []
+    for gen in range(generations):
         print(f'gen # {gen}')
         offspring = algorithms.varAnd(population, toolbox, cxpb=0.5, mutpb=0.1)
         fits = toolbox.map(toolbox.evaluate, offspring)
         for fit, ind in zip(fits, offspring):
             ind.fitness.values = fit
         population = toolbox.select(offspring, k=len(population))
+
+        fit_values_first = []
+        fit_values_second = []
+        for ind in population:
+            first_, second_ = ind.fitness.values
+            fit_values_first.append(first_)
+            fit_values_second.append(second_)
+
+        plt.scatter(fit_values_first, fit_values_second)
+        plt.show()
+        fit_history_first.append(np.average(fit_values_first))
+        fit_history_second.append(np.average(fit_values_second))
+
     top10 = tools.selBest(population, k=10)
 
-    print(top10)
+    return top10, (fit_history_first, fit_history_second)
 
+
+def show_fitness_history(history):
+    gens = [gen for gen in range(len(history))]
+
+    plt.plot(gens, history)
+    plt.show()
+
+
+if __name__ == '__main__':
+    top10, history = run_evolution(generations=20)
+    print(top10)
     best_params = top10[0]
 
     params_ = individ_to_params(best_params)
@@ -115,3 +167,4 @@ if __name__ == '__main__':
     print(model_score_fitness(params=best_params))
     samples, labels = generated_dataset(params=params_)
     show_clusters(samples=samples, labels=labels)
+    show_fitness_history(history=history)
