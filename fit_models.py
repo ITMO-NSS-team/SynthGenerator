@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 from generators.mdc import generated_dataset
@@ -35,6 +36,18 @@ def log_reg_score(dataset: Tuple) -> Tuple[float, float]:
     log_reg = LogisticRegression()
 
     scores = cross_val_score(log_reg, features, target, cv=5)
+
+    return scores.mean(), 0.5
+
+
+def knn_score(dataset: Tuple) -> Tuple[float, float]:
+    samples, labels = dataset
+
+    features = samples
+    target = np.ravel(labels)
+    knn = KNeighborsClassifier()
+
+    scores = cross_val_score(knn, features, target, cv=5)
 
     return scores.mean(), 0.5
 
