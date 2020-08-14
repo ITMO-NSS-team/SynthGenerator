@@ -2,9 +2,21 @@ import matplotlib.pyplot as plt
 from mdcgenpy.clusters import ClusterGenerator
 from mdcgenpy.clusters.distributions import valid_distributions
 
+COLORS = ['black', 'red', 'orange', 'gold', 'green', 'teal', 'cyan',
+          'blue', 'magenta', 'pink']
+
+
+def color_labels(values):
+    labels = []
+    for val in values:
+        labels.append(COLORS[val[0]])
+
+    return labels
+
 
 def show_clusters(samples, labels):
-    plt.scatter(samples[:, 0], samples[:, 1], c=labels, s=10)
+    colors = color_labels(labels)
+    plt.scatter(samples[:, 0], samples[:, 1], color=colors, s=10)
     plt.show()
 
 
