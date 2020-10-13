@@ -20,7 +20,7 @@ Several state-of-the-art experimental algorithms exist but it is still an open p
 + [HAWK](https://github.com/sea-shunned/hawks) - an experimental framework for clustering datasets generation based on evolutionary algorithm
 + [EDO](https://github.com/daffidwilde/edo) - a python library for generating artificial datasets through evolution
 
-### What about AutoML?
+### *What about AutoML?*
 In the AutoML case, it is also an open problem since most of the frameworks are usually tested using only a predefined list of datasets for benchmarking.
 
 Speaking about the [composite models](https://itmo-nss-team.github.io/FEDOT.Docs/autolearning/composite) that can be built by AutoML frameworks (for instance, using FEDOT), a specific generator of synthetic datasets is also needed for performance benchmarking. 
